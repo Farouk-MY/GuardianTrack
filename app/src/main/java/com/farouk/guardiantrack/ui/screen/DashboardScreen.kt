@@ -91,7 +91,7 @@ fun DashboardScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { com.farouk.guardiantrack.ui.components.GuardianSnackbarHost(snackbarHostState) },
         containerColor = GuardianTheme.colors.meshPrimary
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {

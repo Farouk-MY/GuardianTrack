@@ -72,23 +72,31 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
         )
 
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            containerColor = Color.Transparent,
-            floatingActionButton = {
-                val scale by animateFloatAsState(
-                    targetValue = 1f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = ""
-                )
-                FloatingActionButton(
-                    onClick = { viewModel.exportToCSV() },
-                    containerColor = Color.Transparent,
-                    shape = CircleShape,
-                    elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp),
-                    modifier = Modifier.scale(scale)
+            snackbarHost = { com.farouk.guardiantrack.ui.components.GuardianSnackbarHost(snackbarHostState) },
+            containerColor = Color.Transparent
+        ) { padding ->
+            Column(Modifier.fillMaxSize().padding(padding)) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Column {
+                        Text(
+                            "History", style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold, color = GuardianTheme.colors.textPrimary, letterSpacing = (-1).sp
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "${uiState.incidents.size} logs recorded",
+                            style = MaterialTheme.typography.bodyMedium, color = GuardianTheme.colors.textMuted
+                        )
+                    }
+
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(50.dp)
                             .background(
                                 brush = Brush.linearGradient(
                                     colors = listOf(GuardianTheme.colors.accentMain, GuardianTheme.colors.meshTertiary),
@@ -97,26 +105,12 @@ fun HistoryScreen(viewModel: HistoryViewModel = hiltViewModel()) {
                                 ),
                                 shape = CircleShape
                             )
-                            .border(1.dp, GuardianTheme.colors.glassHigh, CircleShape),
+                            .border(1.dp, GuardianTheme.colors.glassHigh, CircleShape)
+                            .clickable { viewModel.exportToCSV() },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(Icons.Rounded.FileDownload, "Export", tint = GuardianTheme.colors.background)
                     }
-                }
-            }
-        ) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding)) {
-                // Header
-                Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
-                    Text(
-                        "History", style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold, color = GuardianTheme.colors.textPrimary, letterSpacing = (-1).sp
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "${uiState.incidents.size} logs recorded",
-                        style = MaterialTheme.typography.bodyMedium, color = GuardianTheme.colors.textMuted
-                    )
                 }
 
                 // Liquid Filters
@@ -360,25 +354,89 @@ private fun GlassIncidentCard(incident: Incident, onDelete: () -> Unit) {
     }
 
     if (showDelete) {
-        AlertDialog(
-            onDismissRequest = { showDelete = false },
-            title = { Text("Delete Log?", fontWeight = FontWeight.Bold, color = GuardianTheme.colors.textPrimary) },
-            text = { Text("This entry will be permanently removed.", color = GuardianTheme.colors.textSecondary) },
-            confirmButton = {
-                Button(
-                    onClick = { onDelete(); showDelete = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = GuardianTheme.colors.accentDanger)
+        androidx.compose.ui.window.Dialog(onDismissRequest = { showDelete = false }) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(GuardianTheme.colors.background)
+                    .border(1.dp, GuardianTheme.colors.glassHigh, RoundedCornerShape(28.dp))
+                    .padding(24.dp)
+            ) {
+                // Subtle glow in the background
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = (-20).dp)
+                        .size(100.dp)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(GuardianTheme.colors.accentDanger.copy(alpha = 0.15f), Color.Transparent)
+                            ),
+                            shape = CircleShape
+                        )
+                        .blur(20.dp)
+                )
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Delete", color = Color.White)
+                    Box(
+                        Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(GuardianTheme.colors.accentDanger.copy(alpha = 0.1f))
+                            .border(1.dp, GuardianTheme.colors.accentDanger.copy(alpha = 0.2f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Rounded.DeleteOutline, contentDescription = null, tint = GuardianTheme.colors.accentDanger, modifier = Modifier.size(28.dp))
+                    }
+                    
+                    Spacer(Modifier.height(16.dp))
+                    
+                    Text(
+                        "Delete Log?",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = GuardianTheme.colors.textPrimary
+                    )
+                    
+                    Spacer(Modifier.height(8.dp))
+                    
+                    Text(
+                        "This entry will be permanently removed and cannot be recovered.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = GuardianTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(Modifier.height(24.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = { showDelete = false },
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = GuardianTheme.colors.glassLow)
+                        ) {
+                            Text("Cancel", color = GuardianTheme.colors.textPrimary, fontWeight = FontWeight.SemiBold)
+                        }
+                        
+                        Button(
+                            onClick = { onDelete(); showDelete = false },
+                            modifier = Modifier.weight(1f).height(50.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = GuardianTheme.colors.accentDanger)
+                        ) {
+                            Text("Delete", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 }
-            },
-            dismissButton = { 
-                TextButton(onClick = { showDelete = false }) { 
-                    Text("Cancel", color = GuardianTheme.colors.textMuted) 
-                } 
-            },
-            shape = RoundedCornerShape(24.dp),
-            containerColor = GuardianTheme.colors.glassHigh
-        )
+            }
+        }
     }
 }

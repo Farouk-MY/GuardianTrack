@@ -213,7 +213,7 @@ class IncidentRepository @Inject constructor(
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
                 put(MediaStore.MediaColumns.MIME_TYPE, "text/csv")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/TrackList")
             }
 
             val uri = context.contentResolver.insert(
@@ -227,8 +227,9 @@ class IncidentRepository @Inject constructor(
         } else {
             val downloadDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
             if (downloadDir != null) {
-                if (!downloadDir.exists()) downloadDir.mkdirs()
-                val file = java.io.File(downloadDir, fileName)
+                val trackListDir = java.io.File(downloadDir, "TrackList")
+                if (!trackListDir.exists()) trackListDir.mkdirs()
+                val file = java.io.File(trackListDir, fileName)
                 file.outputStream().use { outputStream ->
                     outputStream.write(csvContent.toByteArray(Charsets.UTF_8))
                 }

@@ -1,35 +1,30 @@
 package com.farouk.guardiantrack.ui.screen
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.farouk.guardiantrack.R
 import com.farouk.guardiantrack.ui.theme.*
 import com.farouk.guardiantrack.ui.viewmodel.SplashViewModel
 import kotlinx.coroutines.delay
-import kotlin.math.*
 
-/**
- * HoloGlass Splash Screen
- * Full-screen fluid cinematic boot sequence.
- *
- * Navigation routing:
- * 1. First launch (onboarding not completed) → Onboarding
- * 2. Returning user, logged in → Dashboard
- * 3. Returning user, logged out → Sign In
- */
 @Composable
 fun SplashScreen(
     onNavigateToOnboarding: () -> Unit,
@@ -43,7 +38,7 @@ fun SplashScreen(
 
     LaunchedEffect(Unit) {
         started = true
-        delay(3200)
+        delay(2500) // Wait a brief moment for the animation
         when {
             !onboardingCompleted -> onNavigateToOnboarding()
             loggedInUserId > 0  -> onNavigateToDashboard()
@@ -53,138 +48,112 @@ fun SplashScreen(
 
     val infiniteTransition = rememberInfiniteTransition(label = "splash")
 
-    // Morphing orb physics
-    val orbMorphX by infiniteTransition.animateFloat(
-        initialValue = 0.85f, targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(tween(1400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "ox"
-    )
-    val orbMorphY by infiniteTransition.animateFloat(
-        initialValue = 1.15f, targetValue = 0.85f,
-        animationSpec = infiniteRepeatable(tween(1600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "oy"
-    )
-    
-    // Background mesh rotation
-    val bgRotation by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(8000, easing = LinearEasing)),
-        label = "bgr"
+    // Gentle pulsing effect for the logo
+    val logoScale by infiniteTransition.animateFloat(
+        initialValue = 0.95f, targetValue = 1.05f,
+        animationSpec = infiniteRepeatable(tween(2000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "logoPulse"
     )
 
     // Entrance animations
-    val orbScale by animateFloatAsState(
-        targetValue = if (started) 1f else 0f, 
-        animationSpec = spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow), label = "osc"
+    val entranceScale by animateFloatAsState(
+        targetValue = if (started) 1f else 0.5f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 200f), label = "entranceScale"
     )
-    
-    val titleAppears by animateFloatAsState(
-        targetValue = if (started) 1f else 0f, 
-        animationSpec = tween(1200, 800, LinearOutSlowInEasing), label = "titleA"
+    val entranceAlpha by animateFloatAsState(
+        targetValue = if (started) 1f else 0f,
+        animationSpec = tween(1000), label = "entranceAlpha"
     )
-    
-    val subtitleAppears by animateFloatAsState(
-        targetValue = if (started) 1f else 0f, 
-        animationSpec = tween(1200, 1400, LinearOutSlowInEasing), label = "subA"
-    )
-
-    val bgPrimary = GuardianTheme.colors.meshPrimary
-    val bgSecondary = GuardianTheme.colors.meshSecondary
-    val bgTertiary = GuardianTheme.colors.meshTertiary
-    
-    val accent = GuardianTheme.colors.accentMain
-    val textPrimary = GuardianTheme.colors.textPrimary
-    val glassHigh = GuardianTheme.colors.glassHigh
-    val glassBorder = GuardianTheme.colors.glassBorder
 
     Box(
-        modifier = Modifier.fillMaxSize().background(bgPrimary),
+        modifier = Modifier.fillMaxSize().background(GuardianTheme.colors.background),
         contentAlignment = Alignment.Center
     ) {
-        // ---- Fluid Background Mesh & Morphing Orb ----
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val cx = size.width / 2
-            val cy = size.height * 0.40f
-            
-            // Rotating Mesh Background Layers
-            val bgRadius = size.maxDimension * 0.8f
-            
-            // Mesh 1
-            drawCircle(
-                brush = Brush.radialGradient(
-                    listOf(bgSecondary.copy(alpha = 0.5f), Color.Transparent),
-                    center = Offset(cx + cos(Math.toRadians(bgRotation.toDouble())).toFloat() * 300f, 
-                                    cy + sin(Math.toRadians(bgRotation.toDouble())).toFloat() * 300f),
-                    radius = bgRadius
-                )
-            )
-            
-            // Mesh 2
-            drawCircle(
-                brush = Brush.radialGradient(
-                    listOf(bgTertiary.copy(alpha = 0.4f), Color.Transparent),
-                    center = Offset(cx + cos(Math.toRadians((bgRotation+180).toDouble())).toFloat() * -200f, 
-                                    cy + sin(Math.toRadians((bgRotation+180).toDouble())).toFloat() * 400f),
-                    radius = bgRadius * 1.2f
-                )
-            )
+        // Fluid Background Mesh
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .offset(x = (-80).dp, y = (-120).dp)
+                .size(400.dp)
+                .background(Brush.radialGradient(listOf(GuardianTheme.colors.meshPrimary.copy(alpha = 0.25f), Color.Transparent)), shape = CircleShape)
+                .blur(100.dp)
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 100.dp, y = 100.dp)
+                .size(350.dp)
+                .background(Brush.radialGradient(listOf(GuardianTheme.colors.meshSecondary.copy(alpha = 0.2f), Color.Transparent)), shape = CircleShape)
+                .blur(100.dp)
+        )
 
-            // Dynamic Morphing App Orb
-            val baseOrbRadius = 80.dp.toPx() * orbScale
-            
-            // Outer Halo
-            if (baseOrbRadius > 0f) {
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        listOf(accent.copy(alpha = 0.4f), Color.Transparent),
-                        center = Offset(cx, cy),
-                        radius = baseOrbRadius * 2.5f
-                    )
+        // Logo Container
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.graphicsLayer {
+                scaleX = entranceScale
+                scaleY = entranceScale
+                alpha = entranceAlpha
+            }
+        ) {
+            // Glowing Glass Ring surrounding Logo
+            Box(
+                modifier = Modifier
+                    .size(160.dp)
+                    .scale(logoScale)
+                    .clip(CircleShape)
+                    .background(Brush.linearGradient(listOf(GuardianTheme.colors.glassHigh, GuardianTheme.colors.glassLow)))
+                    .border(1.dp, GuardianTheme.colors.accentMain.copy(alpha = 0.5f), CircleShape)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Background Glow behind image
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                        .background(Brush.radialGradient(listOf(GuardianTheme.colors.accentMain.copy(alpha = 0.5f), Color.Transparent)))
+                        .blur(20.dp)
                 )
                 
-                // Replace path morphing with layered soft glowing circles representing liquid
-                drawCircle(
-                    color = glassHigh,
-                    radius = baseOrbRadius * orbMorphX,
-                    center = Offset(cx, cy)
+                // Real App Logo Image
+                Image(
+                    painter = painterResource(id = R.mipmap.ic_launcher),
+                    contentDescription = "GuardianTrack Logo",
+                    modifier = Modifier.fillMaxSize().clip(CircleShape)
                 )
-                drawCircle(
-                    color = accent.copy(alpha = 0.6f),
-                    radius = baseOrbRadius * orbMorphY * 0.85f,
-                    center = Offset(cx, cy)
-                )
-                drawCircle(
-                    color = glassBorder,
-                    radius = baseOrbRadius * orbMorphX,
-                    style = Stroke(width = 8f),
-                    center = Offset(cx, cy)
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "GUARDIAN",
+                fontSize = 36.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = GuardianTheme.colors.textPrimary,
+                letterSpacing = 12.sp,
+                modifier = Modifier.graphicsLayer { alpha = entranceAlpha }
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(GuardianTheme.colors.glassHigh)
+                    .border(1.dp, GuardianTheme.colors.glassBorder, CircleShape)
+                    .padding(horizontal = 16.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "SYSTEM INITIALIZING...",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = GuardianTheme.colors.accentMain,
+                    letterSpacing = 4.sp,
+                    modifier = Modifier.graphicsLayer { 
+                        alpha = (entranceAlpha * logoScale).coerceIn(0.4f, 1f) 
+                    }
                 )
             }
         }
-
-        // ---- Text Layer ----
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 120.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "G U A R D I A N",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = textPrimary.copy(alpha = titleAppears),
-                letterSpacing = 10.sp
-            )
-            Text(
-                text = "H O L O G L A S S    E D I T I O N",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = accent.copy(alpha = subtitleAppears),
-                letterSpacing = 6.sp,
-                modifier = Modifier.padding(top = 16.dp)
-            )
-        }
     }
 }
+

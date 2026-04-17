@@ -70,7 +70,7 @@ fun SettingsScreen(
         )
 
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
+            snackbarHost = { com.farouk.guardiantrack.ui.components.GuardianSnackbarHost(snackbarHostState) },
             containerColor = Color.Transparent
         ) { padding ->
             LazyColumn(

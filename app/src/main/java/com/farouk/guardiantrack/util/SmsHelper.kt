@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import com.farouk.guardiantrack.R
 import com.farouk.guardiantrack.data.local.preferences.EncryptedPreferencesManager
 import com.farouk.guardiantrack.data.local.preferences.UserPreferencesManager
+import com.farouk.guardiantrack.data.repository.ContactRepository
 import com.farouk.guardiantrack.domain.model.IncidentType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
@@ -28,7 +29,8 @@ import javax.inject.Singleton
 class SmsHelper @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userPrefs: UserPreferencesManager,
-    private val encryptedPrefs: EncryptedPreferencesManager
+    private val encryptedPrefs: EncryptedPreferencesManager,
+    private val contactRepository: ContactRepository
 ) {
     companion object {
         private const val TAG = "SmsHelper"
@@ -41,16 +43,34 @@ class SmsHelper @Inject constructor(
         longitude: Double
     ) {
         val isSimulation = userPrefs.smsSimulationMode.first()
-        val phoneNumber = encryptedPrefs.emergencyNumber
+        val mainNumber = encryptedPrefs.emergencyNumber
+        val contactList = contactRepository.getAllContactsList()
+
+        val allNumbers = mutableSetOf<String>()
+        if (mainNumber.isNotBlank()) {
+            allNumbers.add(mainNumber.trim())
+        }
+        contactList.forEach { contact ->
+            if (contact.phoneNumber.isNotBlank()) {
+                allNumbers.add(contact.phoneNumber.trim())
+            }
+        }
+
+        if (allNumbers.isEmpty()) {
+            Log.w(TAG, "No emergency contacts configured to send SMS.")
+            return
+        }
 
         val message = buildAlertMessage(incidentType, latitude, longitude)
 
-        if (isSimulation) {
-            // Simulation mode: local notification + log
-            sendSimulatedSms(phoneNumber, message)
-        } else {
-            // Real mode: actual SMS
-            sendRealSms(phoneNumber, message)
+        allNumbers.forEach { phoneNumber ->
+            if (isSimulation) {
+                // Simulation mode: local notification + log
+                sendSimulatedSms(phoneNumber, message)
+            } else {
+                // Real mode: actual SMS
+                sendRealSms(phoneNumber, message)
+            }
         }
     }
 
@@ -76,7 +96,7 @@ class SmsHelper @Inject constructor(
         Log.i(TAG, "📱 [SMS SIMULÉ] À: $phoneNumber")
         Log.i(TAG, "📱 [SMS SIMULÉ] Message: $message")
 
-        // Show notification as substitute
+        // Show notification as substitute. Use hash of phone to prevent overwriting other simulated SMSs.
         val notification = NotificationCompat.Builder(context, "alert_channel")
             .setContentTitle("📱 SMS Simulé envoyé")
             .setContentText("Destinataire: $phoneNumber")
@@ -87,7 +107,7 @@ class SmsHelper @Inject constructor(
             .build()
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(SMS_NOTIFICATION_ID, notification)
+        manager.notify(SMS_NOTIFICATION_ID + phoneNumber.hashCode(), notification)
     }
 
     @Suppress("MissingPermission")
